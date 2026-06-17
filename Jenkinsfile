@@ -39,13 +39,11 @@ pipeline {
         }
 
         stage('Deploy to Kubernetes') {
-            steps {
-                kubernetesDeploy(
-                    kubeconfigId: 'kubeconfig',
-                    configs: 'train-schedule-kube.yml',
-                    enableConfigSubstitution: true
-                )
-            }
-        }
+    steps {
+        sh '''
+        kubectl apply -f train-schedule-kube.yml
+        '''
+    }
+}
     }
 }
