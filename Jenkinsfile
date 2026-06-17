@@ -2,7 +2,6 @@ pipeline {
     agent any
 
     environment {
-        //be sure to replace "willbla" with your own Docker Hub username
         DOCKER_IMAGE_NAME = "bogeyman13/train-schedule-k8s"
     }
 
@@ -16,22 +15,25 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                script {
-                    app = docker.build("${DOCKER_IMAGE_NAME}:${BUILD_NUMBER}")
-                }
+                sh """
+                    docker build -t ${DOCKER_IMAGE_NAME}:${BUILD_NUMBER} .
+                    docker tag ${DOCKER_IMAGE_NAME}:${BUILD_NUMBER} ${DOCKER_IMAGE_NAME}:latest
+                """
             }
         }
 
         stage('Push Docker Image') {
             steps {
-                script {
-                    docker.withRegistry(
-                        'https://registry.hub.docker.com',
-                        'docker_hub_login'
-                    ) {
-                        app.push("${BUILD_NUMBER}")
-                        app.push("latest")
-                    }
+                withCredentials([usernamePassword(
+                    credentialsId: 'docker_hub_login',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+                    sh """
+                        echo \$DOCKER_PASS | docker login -u \$DOCKER_USER --password-stdin
+                        docker push ${DOCKER_IMAGE_NAME}:${BUILD_NUMBER}
+                        docker push ${DOCKER_IMAGE_NAME}:latest
+                    """
                 }
             }
         }
